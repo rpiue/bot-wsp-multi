@@ -2,19 +2,19 @@ const { Client, MessageMedia } = require("whatsapp-web.js");
 const axios = require("axios");
 
 const {
-    fetchEmailsFromFirestore,
-    findEmailInCache,
-  } = require("./datos-firebase");
+  fetchEmailsFromFirestore,
+  findEmailInCache,
+} = require("./datos-firebase");
 
 let isActive = false;
 let currentQr = "";
 let qrGenerationCount = 0;
 const ultimosMensajes = {};
 let mensajesEnviados = [];
-
+let client;
 
 const botCodexPE = (io) => {
-  const client = new Client();
+  client = new Client();
 
   const stopClient = () => {
     client.destroy();
@@ -52,7 +52,6 @@ const botCodexPE = (io) => {
     qrGenerationCount = 0; // Reset QR generation count
     io.emit("botCodexPEStatus", isActive);
     await fetchEmailsFromFirestore();
-
   });
 
   client.on("disconnected", () => {
@@ -63,7 +62,6 @@ const botCodexPE = (io) => {
 
   let imageUrl;
   client.on("message", async (msg) => {
-
     const chat = await msg.getChat();
     const userNumber1 = msg.from.includes("@")
       ? msg.from.split("@")[0]
@@ -193,14 +191,15 @@ _¡Gracias por confiar en nosotros!_`;
             const media = new MessageMedia("image/jpeg", imageBase64);
 
             await chat.sendMessage(media);
-          }else{
-            console.log('no hay nada en img', imageUrl)
+          } else {
+            console.log("no hay nada en img", imageUrl);
           }
         } catch (error) {
           console.error("Error al enviar la imagen:", error);
         }
-      }else {
-        const responseMessage = "Por favor, envíanos un audio para más información.";
+      } else {
+        const responseMessage =
+          "Por favor, envíanos un audio para más información.";
         await msg.reply(responseMessage);
       }
     }
@@ -225,9 +224,9 @@ _¡Gracias por confiar en nosotros!_`;
       }
     },
 
-    codigoPago : (img) =>{
+    codigoPago: (img) => {
       imageUrl = img;
-      console.log('Se asigno la Imagen al Bot', imageUrl)
+      console.log("Se asigno la Imagen al Bot", imageUrl);
     },
     generateNewQr: () => {
       if (!isActive) {
@@ -240,4 +239,30 @@ _¡Gracias por confiar en nosotros!_`;
   };
 };
 
-module.exports = botCodexPE;
+router.use(express.json());
+router.post("/verificar", async (req, res) => {
+  const { codigo, numero, nombre } = req.body;
+
+  try {
+    if (!codigo || !numero) {
+      return res.status(400).send("Faltan parámetros: código o número.");
+    }
+
+    const mensaje = `Hola ${nombre}, tu código es *${codigo}*.`;
+    const mensaje2 = `Recuerda que la aplicación es *GRATIS*. No pagues a nadie.`;
+    const mensaje3 = `El link de la aplicación está en el perfil y puedes descargarla gratuitamente.`;
+    const chatId = `51${numero}@c.us`;
+
+    await client.sendMessage(chatId, mensaje);
+    await client.sendMessage(chatId, mensaje2);
+    await client.sendMessage(chatId, mensaje3);
+
+    console.log("Mensaje enviado correctamente por Codexpe");
+    res.status(200).send("Mensaje enviado por Codexpe.");
+  } catch (error) {
+    console.error("Error al enviar el mensaje:", error);
+    res.status(500).send("Error al enviar el mensaje por Codexpe.");
+  }
+});
+
+module.exports = { botCodexPE, router };
