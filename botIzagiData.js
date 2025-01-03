@@ -1,59 +1,22 @@
 const { Client, MessageMedia } = require("whatsapp-web.js");
 const axios = require("axios");
 const express = require("express");
-
-const app = express();
-app.use(express.static("public"));
-app.post("/verificar", async (req, res) => {
-  const { codigo, numero, nombre } = req.body;
-
-  try {
-    if (!codigo || !numero) {
-      return res.status(400).send("Faltan parámetros: código o número.");
-    }
-
-    const mensaje = `Hola ${nombre}, tu código es *${codigo}*`;
-    const mensaje2 = `Recuerda que la aplicación es *GRATIS*. No pagues a nadie. Si alguien intenta venderte la aplicación, no lo reclamarle; simplemente repórtalo escribiendo la palabra *reporte*.`;
-    const mensaje3 = `El link de la aplicacion estan en el link de mi perfil y las puedes descargar gratuitamente.`;
-    const mensaje4 = `https://api-izd.onrender.com`;
-    const chatId = `51${numero}@c.us`;
-
-    // Enviar el mensaje usando whatsapp-web.js
-
-    client
-      .sendMessage(chatId, mensaje)
-      .then((response) => {
-        client.sendMessage(chatId, mensaje2);
-        client.sendMessage(chatId, mensaje3);
-
-        console.log("Mensaje enviado correctamente:");
-        return res.status(200).send("Mensaje enviado.");
-      })
-      .catch((error) => {
-        console.error("Error al enviar el mensaje:", error);
-        return res.status(500).send("Error al enviar el mensaje.");
-      });
-  } catch (error) {
-    console.error("Error en el servidor:", error);
-    res.status(500).send("Error interno del servidor.");
-  }
-});
-
+const router = express.Router();
 
 const {
-    fetchEmailsFromFirestore,
-    findEmailInCache,
-  } = require("./datos-firebase");
+  fetchEmailsFromFirestore,
+  findEmailInCache,
+} = require("./datos-firebase");
 
 let isActive = false;
 let currentQr = "";
 let qrGenerationCount = 0;
 const ultimosMensajes = {};
 let mensajesEnviados = [];
-
+let client;
 
 const botIzagiData = (io) => {
-  const client = new Client();
+  client = new Client();
 
   const stopClient = () => {
     client.destroy();
@@ -91,7 +54,6 @@ const botIzagiData = (io) => {
     qrGenerationCount = 0; // Reset QR generation count
     io.emit("botIzagiDataStatus", isActive);
     await fetchEmailsFromFirestore();
-
   });
 
   client.on("disconnected", () => {
@@ -102,7 +64,6 @@ const botIzagiData = (io) => {
 
   let imageUrl;
   client.on("message", async (msg) => {
-
     const chat = await msg.getChat();
     const userNumber1 = msg.from.includes("@")
       ? msg.from.split("@")[0]
@@ -208,14 +169,15 @@ _¡Gracias por confiar en nosotros!_`;
             const media = new MessageMedia("image/jpeg", imageBase64);
 
             await chat.sendMessage(media);
-          }else{
-            console.log('no hay nada en img', imageUrl)
+          } else {
+            console.log("no hay nada en img", imageUrl);
           }
         } catch (error) {
           console.error("Error al enviar la imagen:", error);
         }
-      }else {
-        const responseMessage = "Por favor, envíanos un audio para más información.";
+      } else {
+        const responseMessage =
+          "Por favor, envíanos un audio para más información.";
         await msg.reply(responseMessage);
       }
     }
@@ -240,9 +202,9 @@ _¡Gracias por confiar en nosotros!_`;
       }
     },
 
-    codigoPago : (img) =>{
+    codigoPago: (img) => {
       imageUrl = img;
-      console.log('Se asigno la Imagen al Bot', imageUrl)
+      console.log("Se asigno la Imagen al Bot", imageUrl);
     },
     generateNewQr: () => {
       if (!isActive) {
@@ -254,5 +216,32 @@ _¡Gracias por confiar en nosotros!_`;
     },
   };
 };
+router.use(express.json());
+router.post("/verificar", async (req, res) => {
+  const { codigo, numero, nombre } = req.body;
 
-module.exports = botIzagiData;
+  try {
+    if (!codigo || !numero) {
+      return res.status(400).send("Faltan parámetros: código o número.");
+    }
+
+    const mensaje = `Hola ${nombre}, tu código es *${codigo}*.`;
+    const mensaje2 = `Recuerda que la aplicación es *GRATIS*. No pagues a nadie.`;
+    const mensaje3 = `El link de la aplicación está en el perfil y puedes descargarla gratuitamente.`;
+    const mensaje4 = `https://izagidata.onrender.com`;
+    const chatId = `51${numero}@c.us`;
+
+    await client.sendMessage(chatId, mensaje);
+    await client.sendMessage(chatId, mensaje2);
+    await client.sendMessage(chatId, mensaje3);
+    await client.sendMessage(chatId, mensaje4);
+
+    console.log("Mensaje enviado correctamente por Codexpe");
+    res.status(200).send("Mensaje enviado por Codexpe.");
+  } catch (error) {
+    console.error("Error al enviar el mensaje:", error);
+    res.status(500).send("Error al enviar el mensaje por Codexpe.");
+  }
+});
+
+module.exports = { botIzagiData, router };
