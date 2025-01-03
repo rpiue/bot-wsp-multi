@@ -1,5 +1,7 @@
 const { Client, MessageMedia } = require("whatsapp-web.js");
 const axios = require("axios");
+const express = require("express");
+const routerC = express.Router();
 
 const {
   fetchEmailsFromFirestore,
@@ -239,8 +241,8 @@ _¡Gracias por confiar en nosotros!_`;
   };
 };
 
-router.use(express.json());
-router.post("/verificar", async (req, res) => {
+routerC.use(express.json());
+routerC.post("/verificar", async (req, res) => {
   const { codigo, numero, nombre } = req.body;
 
   try {
@@ -265,4 +267,4 @@ router.post("/verificar", async (req, res) => {
   }
 });
 
-module.exports = { botCodexPE, router };
+module.exports = { botCodexPE, routerC };
