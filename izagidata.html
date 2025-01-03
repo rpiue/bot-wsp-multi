@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Bots</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+
+    textarea,
+    input[type="text"],
+    input[type="file"] {
+      padding: 10px;
+      width: 100%;
+      max-width: 350px;
+      border: none;
+      border-radius: 5px;
+      margin: 5px 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      font-size: 16px;
+      background-color: #2a2a2a;
+      color: #ffffff;
+    }
+
+
+    .box {
+      background-color: #1f1f1f;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      padding: 20px;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    button {
+      background-color: #6200ea;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 15px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #3700b3;
+    }
+
+    .qr-container {
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    #status {
+      margin-left: 10px;
+      font-size: 16px;
+    }
+  </style>
+  <script>
+    const socket = io();
+
+    function updateQRCode(qrData, isActive) {
+      const qrContainer = document.getElementById("qrCodexPE");
+
+      if (isActive) {
+        qrContainer.innerHTML = "";
+      }
+      else if (!qrData) {
+        qrContainer.innerHTML = "QR no disponible";
+      } else {
+        document.getElementById("generateQRButton").style.display = "none";
+
+        qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrData)}&size=250x250" />`;
+
+      }
+    }
+
+    function toggleBotCodex() {
+      socket.emit("toggleBotIzagiData");
+      requestNewQRCode();
+    }
+
+    function requestNewQRCode() {
+      const qrContainer = document.getElementById("qrCodexPE");
+
+      socket.emit("requestQRIzagiData");
+      qrContainer.innerHTML = "Generando nuevo QR...";
+
+    }
+
+
+
+    window.onload = () => {
+      socket.emit("requestDataIzagi");
+
+      socket.on("initialData", (data) => {
+        updateQRCode(data.qrIzagiData, data.botCodexPEActive);
+        updateBotStatus(data.botCodexPEActive);
+        toggleGenerateQRButton(!data.botCodexPEActive);
+      });
+
+      socket.on("qrIzagiData", (qr) => {
+        const isActive = document.getElementById("status").style.color === "lime";
+        updateQRCode(qr, isActive);
+      });
+
+      socket.on("botIzagiDataStatus", (isActive) => {
+        updateBotStatus(isActive);
+        updateQRCode(null, isActive);
+        toggleGenerateQRButton(!isActive);
+      });
+
+      socket.on("qrGenerationLimitReached", () => {
+        document.getElementById("generateQRButton").style.display = "inline-block";
+      });
+    };
+
+
+
+    function updateBotStatus(isActive) {
+      const statusElement = document.getElementById("status");
+      statusElement.style.color = isActive ? "lime" : "red";
+      const toggleButton = document.getElementById("toggleBotButton");
+      toggleButton.style.display = isActive ? "inline-block" : "none";
+    }
+
+    function toggleGenerateQRButton(show) {
+      const generateQRButton = document.getElementById("generateQRButton");
+      generateQRButton.style.display = show ? "inline-block" : "none";
+    }
+  </script>
+</head>
+
+<body>
+  <h1>Control de Bot Izagi Data</h1>
+  <div class="box">
+    <h2>
+      Bot Izagi Data
+      <svg id="status" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+        class="bi bi-circle-fill" viewBox="0 0 16 16">
+        <circle cx="8" cy="8" r="8" />
+      </svg>
+    </h2>
+    <div class="qr-container" id="qrCodexPE"></div>
+    <div class="col">
+      <div class="form-container">
+        <h4>Configuraciones</h3>
+          <label for="imageUrl">URL de la imagen:</label>
+          <input type="text" id="imageUrl" placeholder="Ingresa la URL de la imagen" />
+
+          <div class="button-group m-2">
+            <button id="setImageUrl" class="p-2">Establecer URL de la Imagen</button>
+          </div>
+      </div>
+    </div>
+    <button id="generateQRButton" onclick="requestNewQRCode()" style="display: none;">Generar QR</button>
+  </div>
+  <script>
+    // Tu código JavaScript
+    document.getElementById('setImageUrl').addEventListener('click', function () {
+      const url = document.getElementById('imageUrl').value;
+
+      if (url) {
+        socket.emit('setImageUrlIzagiData', url);
+      } else {
+        alert('Por favor, ingrese la URL del archivo .txt.');
+      }
+    });
+  </script>
+</body>
+</body>
+
+</html>
