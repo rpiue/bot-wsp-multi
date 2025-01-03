@@ -1,7 +1,7 @@
 const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
-const {botCodexPE, router} = require("./botCodexPE");
+const {botCodexPE, routerC} = require("./botCodexPE");
 const {botIzagiData,router } = require("./botIzagiData");
 
 const app = express();
@@ -31,7 +31,7 @@ app.get("/sara", (req, res) => {
 
 
 app.use("/botIzagi", router);
-app.use("/botCodexPe", router);
+app.use("/botCodexPe", routerC);
 app.get("/izagidata", (req, res) => {
     res.sendFile(__dirname + "/public/izagidata.html");
   });
